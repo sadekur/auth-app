@@ -1,13 +1,22 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import axios from "axios";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      router.push("/");
+    }
+  }, [router]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,7 +28,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", formData);
-      alert(res.data.message);
+      Cookies.set("token", res.data.token, { expires: 7 });
+      Cookies.set("user", JSON.stringify(res.data.user), { expires: 7 });
+      router.push("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {
@@ -46,14 +57,23 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full rounded-md border p-2"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full rounded-md border p-2 pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
           <button
             type="submit"
