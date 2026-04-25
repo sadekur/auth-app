@@ -1,15 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Mail, Lock, User, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
-import { Card, CardHeader, CardTitle, CardContent } from "../../components/Card";
-import { Input } from "../../components/Input";
-import { Button } from "../../components/Button";
-import { PasswordStrength } from "../../components/Progress";
-import { PASSWORD_MIN_LENGTH, NAME_MIN_LENGTH, NAME_MAX_LENGTH } from "../../lib/constants";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -18,183 +11,122 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
   const { register } = useAuth();
   const router = useRouter();
 
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.name) {
-      newErrors.name = "Name is required";
-    } else if (formData.name.length < NAME_MIN_LENGTH || formData.name.length > NAME_MAX_LENGTH) {
-      newErrors.name = `Name must be ${NAME_MIN_LENGTH}-${NAME_MAX_LENGTH} characters`;
-    }
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Invalid email address";
-    }
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < PASSWORD_MIN_LENGTH) {
-      newErrors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
-    }
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    setError("");
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
     
     setLoading(true);
     const result = await register(formData.name, formData.email, formData.password);
     setLoading(false);
     
     if (result.success) {
-      toast.success("Welcome! Your account has been created.");
       router.push("/");
     } else {
-      toast.error(result.error || "Registration failed");
+      setError(result.error || "Registration failed");
     }
   };
 
-  const features = [
-    "Secure password encryption",
-    "JWT token authentication",
-    "Profile management",
-    "Account security settings",
-  ];
-
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 text-white p-12 flex-col justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <span className="font-bold">A</span>
-            </div>
-            <span className="text-xl font-bold">AuthApp</span>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md mx-4">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
+          <p className="text-gray-500 mt-2">Sign up to get started</p>
         </div>
-        <div>
-          <h2 className="text-4xl font-bold mb-6">Start your journey with us</h2>
-          <p className="text-blue-100 text-lg mb-8">
-            Join thousands of users who trust our secure authentication system.
-          </p>
-          <div className="space-y-4">
-            {features.map((feature, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4" />
-                </div>
-                <span>{feature}</span>
-              </div>
-            ))}
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
-        </div>
-        <p className="text-blue-200 text-sm">
-          By signing up, you agree to our Terms of Service and Privacy Policy
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="John Doe"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Create a password"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Confirm your password"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-gray-500">
+          Already have an account?{" "}
+          <Link href="/login" className="text-blue-600 hover:underline font-medium">
+            Sign in
+          </Link>
         </p>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl">Create Account</CardTitle>
-            <p className="text-center text-gray-500 mt-1">Enter your details to get started</p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="relative">
-                <User className="absolute left-3 top-[38px] h-5 w-5 text-gray-400" />
-                <Input
-                  type="text"
-                  name="name"
-                  label="Full Name"
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={handleChange}
-                  error={errors.name}
-                  className="pl-10"
-                  autoComplete="name"
-                />
-              </div>
-
-              <div className="relative">
-                <Mail className="absolute left-3 top-[38px] h-5 w-5 text-gray-400" />
-                <Input
-                  type="email"
-                  name="email"
-                  label="Email Address"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={errors.email}
-                  className="pl-10"
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="relative">
-                <Lock className="absolute left-3 top-[38px] h-5 w-5 text-gray-400" />
-                <Input
-                  type="password"
-                  name="password"
-                  label="Password"
-                  placeholder="Create a strong password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  error={errors.password}
-                  className="pl-10"
-                  autoComplete="new-password"
-                />
-                {formData.password && <PasswordStrength password={formData.password} />}
-              </div>
-
-              <div className="relative">
-                <Lock className="absolute left-3 top-[38px] h-5 w-5 text-gray-400" />
-                <Input
-                  type="password"
-                  name="confirmPassword"
-                  label="Confirm Password"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  error={errors.confirmPassword}
-                  className="pl-10"
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <Button type="submit" loading={loading} variant="success" className="w-full">
-                Create Account
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center text-sm">
-              <span className="text-gray-500">Already have an account? </span>
-              <Link href="/login" className="text-blue-600 hover:underline font-medium">
-                Sign in
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

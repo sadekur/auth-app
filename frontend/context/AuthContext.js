@@ -9,7 +9,7 @@ const AuthContext = createContext(null);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
+    return null;
   }
   return context;
 };
@@ -25,7 +25,6 @@ export const AuthProvider = ({ children }) => {
   const api = axios.create({
     baseURL: API_URL,
     headers: { "Content-Type": "application/json" },
-    withCredentials: true,
   });
 
   api.interceptors.request.use(
@@ -38,44 +37,6 @@ export const AuthProvider = ({ children }) => {
     },
     (error) => Promise.reject(error)
   );
-
-  api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response?.status === 401) {
-        Cookies.remove("token");
-        Cookies.remove("user");
-        setUser(null);
-        router.push("/login");
-      }
-      return Promise.reject(error);
-    }
-  );
-
-  const checkAuth = useCallback(async () => {
-    try {
-      const token = Cookies.get("token");
-      if (token) {
-        const userData = Cookies.get("user");
-        if (userData) {
-          setUser(JSON.parse(userData));
-        }
-        const res = await api.get("/auth/me");
-        setUser(res.data.user);
-        Cookies.set("user", JSON.stringify(res.data.user), { expires: 7 });
-      }
-    } catch (err) {
-      Cookies.remove("token");
-      Cookies.remove("user");
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [api, router]);
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
 
   const login = async (email, password) => {
     setError(null);
@@ -117,7 +78,9 @@ export const AuthProvider = ({ children }) => {
     Cookies.remove("token");
     Cookies.remove("user");
     setUser(null);
-    router.push("/login");
+    if (typeof window !== "undefined") {
+      router.push("/login");
+    }
   };
 
   const updateProfile = async (data) => {
@@ -145,6 +108,31 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: message };
     }
   };
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const token = Cookies.get("token");
+      if (token) {
+        const userData = Cookies.get("user");
+        if (userData) {
+          setUser(JSON.parse(userData));
+        }
+        const res = await api.get("/auth/me");
+        setUser(res.data.user);
+        Cookies.set("user", JSON.stringify(res.data.user), { expires: 7 });
+      }
+    } catch (err) {
+      Cookies.remove("token");
+      Cookies.remove("user");
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const value = {
     user,
